@@ -49,6 +49,13 @@ export default function UsernameForm({ isFirstTime = false, onComplete }: Userna
       return;
     }
 
+    // Check if this is already their current username
+    if (user?.username && user.username.toLowerCase() === trimmed.toLowerCase()) {
+      setIsAvailable(false); // Set to false to prevent green checkmark
+      setValidationError('This is already your current username');
+      return;
+    }
+
     setIsChecking(true);
     try {
       const available = await checkUsernameAvailable(trimmed);
@@ -65,7 +72,10 @@ export default function UsernameForm({ isFirstTime = false, onComplete }: Userna
   const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setUsername(value);
-    setValidationError(validateUsername(value));
+    
+    // Only set validation error for format issues, not "already your username"
+    const formatError = validateUsername(value);
+    setValidationError(formatError);
     
     // Reset availability check
     setIsAvailable(null);

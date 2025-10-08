@@ -114,6 +114,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
         throw new Error('Username cannot be empty');
       }
 
+      // Check if this is already their current username
+      if (user.username && user.username.toLowerCase() === trimmedUsername.toLowerCase()) {
+        throw new Error('This is already your current username');
+      }
+
       // Check if username is available
       const isAvailable = await checkUsernameAvailable(trimmedUsername);
       if (!isAvailable) {
