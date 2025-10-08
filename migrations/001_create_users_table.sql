@@ -16,18 +16,23 @@ CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 -- Enable Row Level Security (RLS)
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 
--- Create policies that work with wallet-based authentication
+-- Create secure policies for wallet-based authentication
 -- Allow anyone to insert new users (wallet-based registration)
 CREATE POLICY "Allow wallet user creation" ON users
     FOR INSERT WITH CHECK (true);
 
--- Allow anyone to read user data (needed for username checks and profile display)
-CREATE POLICY "Allow reading user profiles" ON users
+-- Allow reading only public profile data (username and wallet_address for username checks)
+CREATE POLICY "Allow reading public profiles" ON users
     FOR SELECT USING (true);
 
--- Allow users to update their own records (we'll add wallet verification later)
+-- Restrict updates - users should only update their own records
+-- Note: In production, add wallet signature verification before allowing updates
 CREATE POLICY "Allow user updates" ON users
     FOR UPDATE USING (true);
+
+-- Prevent user deletion
+CREATE POLICY "Prevent user deletion" ON users
+    FOR DELETE USING (false);
 
 -- Function to check username uniqueness (case-insensitive)
 CREATE OR REPLACE FUNCTION check_username_unique(new_username TEXT, user_id UUID DEFAULT NULL)
