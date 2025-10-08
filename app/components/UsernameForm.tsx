@@ -164,12 +164,12 @@ export default function UsernameForm({ isFirstTime = false, onComplete }: Userna
             )}
             {!isChecking && isAvailable === true && (
               <div className="absolute right-3 top-2 text-green-500">
-                ✓
+                ✅
               </div>
             )}
             {!isChecking && isAvailable === false && (
-              <div className="absolute right-3 top-2 text-orange-500">
-                ⚠
+              <div className="absolute right-3 top-2 text-red-500">
+                ❌
               </div>
             )}
           </div>
