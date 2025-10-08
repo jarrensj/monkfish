@@ -169,10 +169,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  // Auto-authenticate when wallet connects/disconnects
+  // Auto-authenticate when wallet connects/disconnects or switches
   useEffect(() => {
-    if (connected && publicKey && !user) {
-      signInWithWallet();
+    if (connected && publicKey) {
+      const currentWalletAddress = publicKey.toBase58();
+      
+      // If no user is signed in, sign them in
+      if (!user) {
+        signInWithWallet();
+      } 
+      // If user is signed in but wallet address changed (wallet switch), clear user and re-authenticate
+      else if (user.wallet_address !== currentWalletAddress) {
+        setUser(null);
+        setError(null);
+        signInWithWallet();
+      }
     } else if (!connected && user) {
       // Wallet disconnected, sign out user
       setUser(null);
