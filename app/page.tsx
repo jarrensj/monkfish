@@ -19,7 +19,7 @@ export default function Home() {
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+          <p className="text-gray-600">Loading…</p>
         </div>
       </div>
     );
@@ -106,7 +106,7 @@ export default function Home() {
         <div className="px-4 py-6 sm:px-0">
           <div className="text-center">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              You're all set!
+              You&apos;re all set!
             </h2>
             <p className="text-gray-600 mb-8">
               Your wallet is connected and you&apos;re authenticated.

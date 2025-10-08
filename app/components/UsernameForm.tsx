@@ -131,7 +131,7 @@ export default function UsernameForm({ isFirstTime = false, onComplete }: Userna
         </p>
         {user?.wallet_address && (
           <p className="text-sm text-gray-500 mt-1 font-mono">
-            {user.wallet_address.slice(0, 8)}...{user.wallet_address.slice(-8)}
+            {user.wallet_address.slice(0, 8)}…{user.wallet_address.slice(-8)}
           </p>
         )}
       </div>
@@ -201,7 +201,7 @@ export default function UsernameForm({ isFirstTime = false, onComplete }: Userna
                 : 'bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
             }`}
           >
-            {isSubmitting ? 'Saving...' : isFirstTime ? 'Create Username' : 'Update Username'}
+            {isSubmitting ? 'Saving…' : isFirstTime ? 'Create Username' : 'Update Username'}
           </button>
           
           {isFirstTime && (
@@ -220,7 +220,7 @@ export default function UsernameForm({ isFirstTime = false, onComplete }: Userna
       {!isFirstTime && (
         <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
           <p className="text-sm text-yellow-800">
-            <strong>Note:</strong> In the future, you'll need to sign a transaction to verify wallet ownership before changing your username.
+            <strong>Note:</strong> In the future, you&apos;ll need to sign a transaction to verify wallet ownership before changing your username.
           </p>
         </div>
       )}
