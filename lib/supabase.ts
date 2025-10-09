@@ -21,7 +21,7 @@ export interface Team {
   id: string
   team_name: string
   wallet_address?: string
-  created_by: string
+  owner: string
   created_at: string
   updated_at: string
 }

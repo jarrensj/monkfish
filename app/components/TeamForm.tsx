@@ -36,7 +36,7 @@ export default function TeamForm({ mode, onSuccess, onCancel }: TeamFormProps) {
       if (mode === 'create') {
         const { error } = await supabase.from("teams").insert({
           team_name: teamName.trim(),
-          created_by: user.id,
+          owner: user.id,
         });
         if (error) throw error;
       } else {

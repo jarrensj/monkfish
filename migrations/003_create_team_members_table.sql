@@ -27,3 +27,6 @@ CREATE POLICY "Allow joining teams" ON team_members
 
 CREATE POLICY "Allow leaving teams" ON team_members
     FOR DELETE USING (true);
+
+CREATE POLICY "Allow role updates" ON team_members
+    FOR UPDATE USING (true);

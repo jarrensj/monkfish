@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS teams (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     team_name TEXT UNIQUE NOT NULL,
     wallet_address TEXT UNIQUE,
-    created_by UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    owner UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -14,8 +14,8 @@ CREATE INDEX IF NOT EXISTS idx_teams_team_name ON teams(team_name);
 -- Create index on wallet_address for faster lookups
 CREATE INDEX IF NOT EXISTS idx_teams_wallet_address ON teams(wallet_address);
 
--- Create index on created_by for faster lookups
-CREATE INDEX IF NOT EXISTS idx_teams_created_by ON teams(created_by);
+-- Create index on owner for faster lookups
+CREATE INDEX IF NOT EXISTS idx_teams_owner ON teams(owner);
 
 -- Enable Row Level Security (RLS)
 ALTER TABLE teams ENABLE ROW LEVEL SECURITY;
@@ -65,20 +65,20 @@ CREATE TRIGGER update_teams_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
--- Function to automatically add team creator as owner in team_members
-CREATE OR REPLACE FUNCTION add_team_creator_as_owner()
+-- Function to automatically add team owner to team_members
+CREATE OR REPLACE FUNCTION add_team_owner_as_member()
 RETURNS TRIGGER AS $$
 BEGIN
-    -- Insert the team creator as owner in team_members table
+    -- Insert the team owner as owner in team_members table
     INSERT INTO team_members (team_id, user_id, role)
-    VALUES (NEW.id, NEW.created_by, 'owner');
+    VALUES (NEW.id, NEW.owner, 'owner');
     
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
--- Trigger to automatically add team creator as owner after team creation
-CREATE TRIGGER add_team_creator_trigger
+-- Trigger to automatically add team owner to team_members after team creation
+CREATE TRIGGER add_team_owner_trigger
     AFTER INSERT ON teams
     FOR EACH ROW
-    EXECUTE FUNCTION add_team_creator_as_owner();
+    EXECUTE FUNCTION add_team_owner_as_member();
