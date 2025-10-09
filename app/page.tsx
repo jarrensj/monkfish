@@ -3,7 +3,8 @@
 import WalletButton from "./components/WalletButton";
 import UsernameForm from "./components/UsernameForm";
 import UserProfile from "./components/UserProfile";
-import CreateTeamForm from "./components/CreateTeamForm";
+import TeamForm from "./components/TeamForm";
+import SuccessBanner from "./components/SuccessBanner";
 import { useAuth } from "./providers/AuthProvider";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
@@ -14,7 +15,10 @@ export default function Home() {
   const { user, loading } = useAuth();
   const [showProfile, setShowProfile] = useState(false);
   const [showCreateTeam, setShowCreateTeam] = useState(false);
-  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [showJoinTeam, setShowJoinTeam] = useState(false);
+  const [showSuccessBanner, setShowSuccessBanner] = useState(false);
+  const [successAction, setSuccessAction] = useState<'create' | 'join' | null>(null);
+  const [successTeamName, setSuccessTeamName] = useState<string>("");
 
   // Show loading state
   if (connected && loading) {
@@ -79,8 +83,21 @@ export default function Home() {
     );
   }
 
-  // Show create team form
-  if (showCreateTeam) {
+  // Show team forms (create or join)
+  if (showCreateTeam || showJoinTeam) {
+    const isCreateMode = showCreateTeam;
+    const title = isCreateMode ? "Create Team" : "Join Team";
+    const onBack = () => isCreateMode ? setShowCreateTeam(false) : setShowJoinTeam(false);
+    const onFormSuccess = (teamName: string) => {
+      isCreateMode ? setShowCreateTeam(false) : setShowJoinTeam(false);
+      setSuccessAction(isCreateMode ? 'create' : 'join');
+      setSuccessTeamName(teamName);
+      setShowSuccessBanner(true);
+      // Auto-hide banner after 5 seconds
+      setTimeout(() => setShowSuccessBanner(false), 5000);
+    };
+    const onFormCancel = () => isCreateMode ? setShowCreateTeam(false) : setShowJoinTeam(false);
+
     return (
       <div className="min-h-screen bg-gray-50">
         {/* Header with back button */}
@@ -88,28 +105,24 @@ export default function Home() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center h-16">
               <button
-                onClick={() => setShowCreateTeam(false)}
+                onClick={onBack}
                 className="flex items-center text-blue-600 hover:text-blue-800 font-medium"
               >
                 ← Back to Home
               </button>
-              <h1 className="ml-4 text-xl font-semibold text-gray-900">Create Team</h1>
+              <h1 className="ml-4 text-xl font-semibold text-gray-900">{title}</h1>
             </div>
           </div>
         </header>
         
-        {/* Create team content */}
+        {/* Form content */}
         <div className="flex items-center justify-center min-h-[calc(100vh-4rem)] py-8 px-4">
           <div className="w-full max-w-2xl">
-          <CreateTeamForm 
-            onSuccess={() => {
-              setShowCreateTeam(false);
-              setShowSuccessMessage(true);
-              // Hide success message after 5 seconds
-              setTimeout(() => setShowSuccessMessage(false), 5000);
-            }}
-            onCancel={() => setShowCreateTeam(false)}
-          />
+            <TeamForm 
+              mode={isCreateMode ? 'create' : 'join'}
+              onSuccess={onFormSuccess}
+              onCancel={onFormCancel}
+            />
           </div>
         </div>
       </div>
@@ -141,37 +154,12 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Success Message Banner */}
-      {showSuccessMessage && (
-        <div className="flex justify-center mt-4 px-4">
-          <div className="bg-green-50 border border-green-200 p-4 rounded-lg shadow-sm max-w-md">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <p className="text-sm font-medium text-green-800">
-                  Team created successfully! You can now start managing your team.
-                </p>
-              </div>
-              <div className="ml-auto pl-3">
-                <div className="-mx-1.5 -my-1.5">
-                  <button
-                    onClick={() => setShowSuccessMessage(false)}
-                    className="inline-flex bg-green-50 rounded-md p-1.5 text-green-500 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-green-50 focus:ring-green-600"
-                  >
-                    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <SuccessBanner 
+        isVisible={showSuccessBanner}
+        action={successAction}
+        teamName={successTeamName}
+        onClose={() => setShowSuccessBanner(false)}
+      />
 
       {/* Main content */}
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
@@ -185,13 +173,21 @@ export default function Home() {
             </p>
             
             {/* Quick Actions */}
-            <div className="mb-8">
-              <button
-                onClick={() => setShowCreateTeam(true)}
-                className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors text-lg font-medium shadow-md"
-              >
-                + Create a Team
-              </button>
+            <div className="mb-8 space-y-4">
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <button
+                  onClick={() => setShowCreateTeam(true)}
+                  className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors text-lg font-medium shadow-md"
+                >
+                  + Create a Team
+                </button>
+                <button
+                  onClick={() => setShowJoinTeam(true)}
+                  className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors text-lg font-medium shadow-md"
+                >
+                  Join a Team
+                </button>
+              </div>
             </div>
             
             <div className="bg-white p-6 rounded-lg shadow-md max-w-md mx-auto">
