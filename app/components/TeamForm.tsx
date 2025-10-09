@@ -63,9 +63,10 @@ export default function TeamForm({ mode, onSuccess, onCancel }: TeamFormProps) {
       // Immediate redirect - no delay
       onSuccess?.(teamName.trim());
       
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Simple but helpful error messages
-      if (err.code === '23505') {
+      const error = err as { code?: string };
+      if (error.code === '23505') {
         setError(mode === 'create' ? "Team name already exists" : "Already a member");
       } else {
         setError("Something went wrong. Please try again.");
