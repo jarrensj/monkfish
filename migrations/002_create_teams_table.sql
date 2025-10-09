@@ -2,7 +2,7 @@
 CREATE TABLE IF NOT EXISTS teams (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     team_name TEXT UNIQUE NOT NULL,
-    wallet_address TEXT UNIQUE,
+    wallet_addresses JSONB DEFAULT '[]'::jsonb,
     owner UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -11,8 +11,8 @@ CREATE TABLE IF NOT EXISTS teams (
 -- Create index on team_name for faster lookups
 CREATE INDEX IF NOT EXISTS idx_teams_team_name ON teams(team_name);
 
--- Create index on wallet_address for faster lookups
-CREATE INDEX IF NOT EXISTS idx_teams_wallet_address ON teams(wallet_address);
+-- Create GIN index on wallet_addresses JSONB for faster lookups
+CREATE INDEX IF NOT EXISTS idx_teams_wallet_addresses ON teams USING GIN (wallet_addresses);
 
 -- Create index on owner for faster lookups
 CREATE INDEX IF NOT EXISTS idx_teams_owner ON teams(owner);

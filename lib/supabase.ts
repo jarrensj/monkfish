@@ -9,6 +9,11 @@ export const createSupabaseBrowserClient = () =>
   createBrowserClient(supabaseUrl, supabaseAnonKey)
 
 // Database types
+export interface WalletAddress {
+  chain: string
+  address: string
+}
+
 export interface User {
   id: string
   wallet_address: string
@@ -20,7 +25,7 @@ export interface User {
 export interface Team {
   id: string
   team_name: string
-  wallet_address?: string
+  wallet_addresses?: WalletAddress[]
   owner: string
   created_at: string
   updated_at: string
