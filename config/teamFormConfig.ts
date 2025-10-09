@@ -5,14 +5,14 @@ export const TEAM_FORM_CONFIG = {
     subtitle: "Set up your team and start collaborating",
     placeholder: "Enter your team name",
     buttonText: "Create Team",
-    loadingText: "Creating Team...",
+    loadingText: "Creating Team…",
   },
   join: {
     title: "Join a Team",
     subtitle: "Enter the name of the team you'd like to join",
     placeholder: "Enter the team name you want to join",
     buttonText: "Join Team",
-    loadingText: "Joining Team...",
+    loadingText: "Joining Team…",
   }
 } as const;
 

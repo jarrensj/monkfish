@@ -99,7 +99,7 @@ export default function TeamForm({ mode, onSuccess, onCancel }: TeamFormProps) {
           />
           {mode === 'join' && (
             <p className="text-sm text-gray-500 mt-2">
-              Enter the exact name of the team you'd like to join
+              Enter the exact name of the team you&apos;d like to join
             </p>
           )}
         </div>
