@@ -5,6 +5,7 @@ import UsernameForm from "./components/UsernameForm";
 import UserProfile from "./components/UserProfile";
 import TeamForm from "./components/TeamForm";
 import SuccessBanner from "./components/SuccessBanner";
+import GroupWalletList from "./components/GroupWalletList";
 import { useAuth } from "./providers/AuthProvider";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
@@ -19,6 +20,7 @@ export default function Home() {
   const [showSuccessBanner, setShowSuccessBanner] = useState(false);
   const [successAction, setSuccessAction] = useState<'create' | 'join' | null>(null);
   const [successTeamName, setSuccessTeamName] = useState<string>("");
+  const [teamRefreshKey, setTeamRefreshKey] = useState(0);
 
   // Show loading state
   if (connected && loading) {
@@ -93,6 +95,10 @@ export default function Home() {
       setSuccessAction(isCreateMode ? 'create' : 'join');
       setSuccessTeamName(teamName);
       setShowSuccessBanner(true);
+      // Trigger team list refresh after a brief delay to allow DB trigger to complete
+      setTimeout(() => {
+        setTeamRefreshKey(prev => prev + 1);
+      }, 500);
       // Auto-hide banner after 5 seconds
       setTimeout(() => setShowSuccessBanner(false), 5000);
     };
@@ -190,34 +196,38 @@ export default function Home() {
               </div>
             </div>
             
-            <div className="bg-white p-6 rounded-lg shadow-md max-w-md mx-auto">
-              <h3 className="text-lg font-semibold mb-4 text-gray-900">Account Info</h3>
-              <div className="space-y-4 text-left">
-                <div className="bg-gray-50 p-3 rounded-md">
-                  <span className="text-sm font-medium text-gray-700">Wallet Address:</span>
-                  <p className="font-mono text-sm text-gray-900 break-all mt-1">
-                    {user?.wallet_address || 'Not available'}
-                  </p>
+            <div className="flex flex-col gap-6 max-w-2xl mx-auto">
+              <div className="bg-white p-6 rounded-lg shadow-md">
+                <h3 className="text-lg font-semibold mb-4 text-gray-900">Account Info</h3>
+                <div className="space-y-4 text-left">
+                  <div className="bg-gray-50 p-3 rounded-md">
+                    <span className="text-sm font-medium text-gray-700">Wallet Address:</span>
+                    <p className="font-mono text-sm text-gray-900 break-all mt-1">
+                      {user?.wallet_address || 'Not available'}
+                    </p>
+                  </div>
+                  <div className="bg-gray-50 p-3 rounded-md">
+                    <span className="text-sm font-medium text-gray-700">Username:</span>
+                    <p className="font-medium text-gray-900 mt-1">
+                      {user?.username || <em className="text-gray-500">Not set</em>}
+                    </p>
+                  </div>
                 </div>
-                <div className="bg-gray-50 p-3 rounded-md">
-                  <span className="text-sm font-medium text-gray-700">Username:</span>
-                  <p className="font-medium text-gray-900 mt-1">
-                    {user?.username || <em className="text-gray-500">Not set</em>}
-                  </p>
-                </div>
+                
+                {/* Add quick username setting button if no username */}
+                {user && !user.username && (
+                  <div className="mt-4 pt-4 border-t">
+                    <button
+                      onClick={() => setShowProfile(true)}
+                      className="w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                    >
+                      Set Username
+                    </button>
+                  </div>
+                )}
               </div>
               
-              {/* Add quick username setting button if no username */}
-              {user && !user.username && (
-                <div className="mt-4 pt-4 border-t">
-                  <button
-                    onClick={() => setShowProfile(true)}
-                    className="w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
-                  >
-                    Set Username
-                  </button>
-                </div>
-              )}
+              <GroupWalletList key={teamRefreshKey} />
             </div>
           </div>
         </div>

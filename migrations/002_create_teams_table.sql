@@ -1,7 +1,9 @@
--- Create teams table for team management
+-- Create teams table for team management (merged with team_wallets)
 CREATE TABLE IF NOT EXISTS teams (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     team_name TEXT UNIQUE NOT NULL,
+    wallet_address TEXT UNIQUE,
+    secret_key TEXT,
     wallet_addresses JSONB DEFAULT '[]'::jsonb,
     owner UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -10,6 +12,9 @@ CREATE TABLE IF NOT EXISTS teams (
 
 -- Create index on team_name for faster lookups
 CREATE INDEX IF NOT EXISTS idx_teams_team_name ON teams(team_name);
+
+-- Create index on wallet_address for faster lookups
+CREATE INDEX IF NOT EXISTS idx_teams_wallet_address ON teams(wallet_address);
 
 -- Create GIN index on wallet_addresses JSONB for faster lookups
 CREATE INDEX IF NOT EXISTS idx_teams_wallet_addresses ON teams USING GIN (wallet_addresses);
@@ -20,21 +25,44 @@ CREATE INDEX IF NOT EXISTS idx_teams_owner ON teams(owner);
 -- Enable Row Level Security (RLS)
 ALTER TABLE teams ENABLE ROW LEVEL SECURITY;
 
--- Create secure policies for team management
--- Allow anyone to insert new teams (team creation)
-CREATE POLICY "Allow team creation" ON teams
+-- CRITICAL SECURITY: Create a public view that exposes only safe, non-sensitive fields
+-- This is what clients can query using the anon key
+CREATE OR REPLACE VIEW teams_public AS
+SELECT 
+    id,
+    team_name,
+    wallet_address,
+    wallet_addresses,
+    owner,
+    created_at,
+    updated_at
+FROM teams;
+
+-- Grant SELECT access to the public view for anon/authenticated users
+GRANT SELECT ON teams_public TO anon;
+GRANT SELECT ON teams_public TO authenticated;
+
+-- CRITICAL SECURITY: Block ALL direct access to teams table from anon/authenticated roles
+-- Only the service_role (backend) can access the secret_key
+-- This prevents ANY client-side access to secret_key even if they query the table directly
+
+-- Block all direct SELECT access from anon/authenticated - they must use teams_public view
+CREATE POLICY "Block direct table access" ON teams
+    FOR SELECT TO anon, authenticated USING (false);
+
+-- Allow service role to insert teams (for team creation via backend)
+CREATE POLICY "Allow team creation via service" ON teams
     FOR INSERT WITH CHECK (true);
 
--- Allow reading all team data (for public team listings)
-CREATE POLICY "Allow reading teams" ON teams
-    FOR SELECT USING (true);
+-- Block inserts from anon/authenticated - only service role can insert
+CREATE POLICY "Block anon insert" ON teams
+    FOR INSERT TO anon, authenticated WITH CHECK (false);
 
--- Restrict updates - teams should only update their own records
--- Note: In production, add wallet signature verification before allowing updates
-CREATE POLICY "Allow team updates" ON teams
-    FOR UPDATE USING (true);
+-- Block updates from anon/authenticated - only service role can update
+CREATE POLICY "Block anon update" ON teams
+    FOR UPDATE TO anon, authenticated USING (false);
 
--- Prevent team deletion
+-- Prevent team deletion from all roles
 CREATE POLICY "Prevent team deletion" ON teams
     FOR DELETE USING (false);
 
@@ -64,21 +92,3 @@ CREATE TRIGGER update_teams_updated_at
     BEFORE UPDATE ON teams
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
-
--- Function to automatically add team owner to team_members
-CREATE OR REPLACE FUNCTION add_team_owner_as_member()
-RETURNS TRIGGER AS $$
-BEGIN
-    -- Insert the team owner as owner in team_members table
-    INSERT INTO team_members (team_id, user_id, role)
-    VALUES (NEW.id, NEW.owner, 'owner');
-    
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- Trigger to automatically add team owner to team_members after team creation
-CREATE TRIGGER add_team_owner_trigger
-    AFTER INSERT ON teams
-    FOR EACH ROW
-    EXECUTE FUNCTION add_team_owner_as_member();

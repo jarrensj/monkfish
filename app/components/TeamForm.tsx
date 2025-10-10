@@ -34,15 +34,29 @@ export default function TeamForm({ mode, onSuccess, onCancel }: TeamFormProps) {
       const supabase = createSupabaseBrowserClient();
       
       if (mode === 'create') {
-        const { error } = await supabase.from("teams").insert({
-          team_name: teamName.trim(),
-          owner: user.id,
+        // Generate a wallet and create team in one backend call
+        const walletResponse = await fetch('/api/wallet/generate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            teamName: teamName.trim(),
+            owner: user.id,
+          }),
         });
-        if (error) throw error;
+        
+        if (!walletResponse.ok) {
+          throw new Error('Failed to generate team wallet');
+        }
+        
+        const walletData = await walletResponse.json();
+        
+        console.log(`✅ Team created with wallet: ${walletData.publicAddress}`);
       } else {
-        // Single query with error handling
+        // Single query with error handling - use teams_public view
         const { data: team, error: teamError } = await supabase
-          .from("teams")
+          .from("teams_public")
           .select("id")
           .ilike("team_name", teamName.trim())
           .single();

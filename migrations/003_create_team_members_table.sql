@@ -30,3 +30,23 @@ CREATE POLICY "Allow leaving teams" ON team_members
 
 CREATE POLICY "Allow role updates" ON team_members
     FOR UPDATE USING (true);
+
+-- Function to automatically add team owner to team_members
+-- Note: This is defined here because it depends on team_members table existing
+CREATE OR REPLACE FUNCTION add_team_owner_as_member()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Insert the team owner as owner in team_members table
+    INSERT INTO team_members (team_id, user_id, role)
+    VALUES (NEW.id, NEW.owner, 'owner');
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger to automatically add team owner to team_members after team creation
+-- Note: This must be created AFTER team_members table exists
+CREATE TRIGGER add_team_owner_trigger
+    AFTER INSERT ON teams
+    FOR EACH ROW
+    EXECUTE FUNCTION add_team_owner_as_member();
