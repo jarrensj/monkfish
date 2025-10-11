@@ -20,39 +20,9 @@ export function useWalletVerification() {
     );
   };
 
-  /**
-   * Verify ownership for username changes
-   * @param newUsername - The new username
-   * @returns Promise<Uint8Array> - The signature
-   */
-  const verifyUsernameChange = async (newUsername: string): Promise<Uint8Array> => {
-    if (!publicKey) {
-      throw new Error('Wallet not connected');
-    }
-
-    const options = WalletVerificationService.createUsernameChangeMessage(
-      newUsername,
-      publicKey.toBase58()
-    );
-
-    return verifyOwnership(options);
-  };
-
-  /**
-   * Verify ownership for team operations
-   * @param operation - The team operation
-   * @param teamName - The team name
-   * @returns Promise<Uint8Array> - The signature
-   */
-  const verifyTeamOperation = async (operation: string, teamName: string): Promise<Uint8Array> => {
-    const options = WalletVerificationService.createTeamOperationMessage(operation, teamName);
-    return verifyOwnership(options);
-  };
-
   return {
     verifyOwnership,
-    verifyUsernameChange,
-    verifyTeamOperation,
     isWalletReady: !!(publicKey && connected && signMessage),
+    walletAddress: publicKey?.toBase58() || null,
   };
 }

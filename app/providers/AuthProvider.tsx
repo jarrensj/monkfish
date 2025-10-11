@@ -4,7 +4,7 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 import { useWallet } from '@solana/wallet-adapter-react';
 import { createSupabaseBrowserClient, User } from '@/lib/supabase';
 import { AuthError } from '@supabase/supabase-js';
-import { useWalletVerification } from '@/hooks/useWalletVerification';
+import { useUserOperations } from '@/hooks/useUserOperations';
 
 interface AuthContextType {
   user: User | null;
@@ -27,7 +27,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { publicKey, connected } = useWallet();
-  const { verifyUsernameChange } = useWalletVerification();
+  const { verifyUsernameChange } = useUserOperations();
   const supabase = createSupabaseBrowserClient();
 
   // Check if user exists or create new user
