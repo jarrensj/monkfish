@@ -70,16 +70,4 @@ export class WalletVerificationService {
     };
   }
 
-  /**
-   * Create a verification message for team operations
-   * @param operation - The team operation (create, join, leave, etc.)
-   * @param teamName - The team name
-   * @returns Formatted message for signing
-   */
-  static createTeamOperationMessage(operation: string, teamName: string): VerificationOptions {
-    return {
-      action: `Team ${operation}`,
-      details: `Team: "${teamName}"`,
-    };
-  }
 }
