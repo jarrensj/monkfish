@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { createSupabaseBrowserClient, User } from '@/lib/supabase';
-import { AuthError } from '@supabase/supabase-js';
+// import { AuthError } from '@supabase/supabase-js';
 
 interface AuthContextType {
   user: User | null;
@@ -25,6 +25,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
   const { publicKey, connected, signMessage } = useWallet();
   const supabase = createSupabaseBrowserClient();
 
@@ -63,7 +64,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
     } catch (err) {
       console.error('Error handling user auth:', err);
-      setError(err instanceof Error ? err.message : 'Authentication failed');
+      // Extract error details for better debugging
+      const errorMsg = err && typeof err === 'object' && 'message' in err 
+        ? (err as any).message 
+        : err instanceof Error ? err.message : 'Authentication failed';
+      console.error('Error details:', { message: errorMsg, code: (err as any)?.code, details: (err as any)?.details });
+      setError(errorMsg);
     }
   };
 
@@ -169,8 +175,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
+  // Set mounted state on client side
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // Auto-authenticate when wallet connects/disconnects or switches
   useEffect(() => {
+    if (!mounted) return;
+    
     if (connected && publicKey) {
       const currentWalletAddress = publicKey.toBase58();
       
@@ -189,14 +202,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setUser(null);
       setError(null);
     }
-  }, [connected, publicKey, user]);
+  }, [mounted, connected, publicKey, user]);
 
   // Initial loading state
   useEffect(() => {
+    if (!mounted) return;
+    
     if (!connected) {
       setLoading(false);
     }
-  }, [connected]);
+  }, [mounted, connected]);
 
   const value: AuthContextType = {
     user,

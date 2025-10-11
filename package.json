@@ -4,9 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
+    "dev:backend": "cd backend && pnpm start",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "submodule:init": "git submodule init && git submodule update",
+    "backend:install": "cd backend && pnpm install"
   },
   "dependencies": {
     "@solana/wallet-adapter-base": "^0.9.27",
