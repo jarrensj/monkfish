@@ -37,11 +37,16 @@ pnpm run submodule:init
 Create a `.env.local` file in the root directory:
 
 ```bash
-# Supabase Configuration
+# Supabase Configuration (Public - exposed to browser)
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 
-# Wallet Backend URL (default: http://localhost:3001)
+# Supabase Service Role Key (Server-only - NEVER exposed to browser)
+# Used by Next.js API routes for authorization checks
+# ⚠️ CRITICAL: Do NOT prefix with NEXT_PUBLIC_ - keep it server-only!
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+
+# Wallet Backend URL (Server-only)
 WALLET_BACKEND_URL=http://localhost:3001
 ```
 
@@ -53,7 +58,10 @@ SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 PORT=3001
 ```
 
-> ⚠️ **Security Note**: Never commit `.env` files or expose your `SUPABASE_SERVICE_ROLE_KEY` to the frontend!
+> ⚠️ **Security Note**: 
+> - The `SUPABASE_SERVICE_ROLE_KEY` is safe to add to `.env.local` because it's **only** accessible to server-side code (API routes)
+> - Variables **without** `NEXT_PUBLIC_` prefix are **never** sent to the browser
+> - Never commit `.env.local` or `.env` files to version control!
 
 ### 3. Database Setup
 

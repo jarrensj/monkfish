@@ -42,15 +42,16 @@ export default function TeamForm({ mode, onSuccess, onCancel }: TeamFormProps) {
           },
           body: JSON.stringify({
             teamName: teamName.trim(),
-            owner: user.id,
+            userId: user.id,
           }),
         });
         
-        if (!walletResponse.ok) {
-          throw new Error('Failed to generate team wallet');
-        }
-        
         const walletData = await walletResponse.json();
+        
+        if (!walletResponse.ok) {
+          console.error('Wallet generation failed:', walletData);
+          throw new Error(walletData.error || 'Failed to generate team wallet');
+        }
         
         console.log(`✅ Team created with wallet: ${walletData.publicAddress}`);
       } else {
@@ -78,10 +79,13 @@ export default function TeamForm({ mode, onSuccess, onCancel }: TeamFormProps) {
       onSuccess?.(teamName.trim());
       
     } catch (err: unknown) {
+      console.error('Team form error:', err);
       // Simple but helpful error messages
-      const error = err as { code?: string };
+      const error = err as { code?: string; message?: string };
       if (error.code === '23505') {
         setError(mode === 'create' ? "Team name already exists" : "Already a member");
+      } else if (error.message) {
+        setError(error.message);
       } else {
         setError("Something went wrong. Please try again.");
       }
@@ -114,7 +118,7 @@ export default function TeamForm({ mode, onSuccess, onCancel }: TeamFormProps) {
           />
           {mode === 'join' && (
             <p className="text-sm text-gray-500 mt-2">
-              Enter the exact name of the team you&apos;d like to join
+              Enter the name of the team you&apos;d like to join
             </p>
           )}
         </div>
