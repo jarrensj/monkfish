@@ -93,14 +93,14 @@ export default function TeamForm({ mode, onSuccess, onCancel }: TeamFormProps) {
             id="teamName"
             value={teamName}
             onChange={(e) => setTeamName(e.target.value)}
-            className="w-full px-4 py-3 text-lg border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+            className="w-full px-4 py-3 text-lg text-gray-900 bg-white border-2 border-gray-300 rounded-lg placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500 transition-colors"
             placeholder={config.placeholder}
             disabled={loading}
             maxLength={100}
           />
           {mode === 'join' && (
             <p className="text-sm text-gray-500 mt-2">
-              Enter the exact name of the team you&apos;d like to join
+              Enter the name of the team you&apos;d like to join
             </p>
           )}
         </div>
