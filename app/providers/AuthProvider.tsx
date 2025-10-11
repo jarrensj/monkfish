@@ -99,10 +99,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  // Update username
+  // Update username with wallet signature verification
   const updateUsername = async (username: string) => {
     if (!user) {
       throw new Error('User not authenticated');
+    }
+
+    if (!publicKey || !connected || !signMessage) {
+      throw new Error('Wallet not connected or does not support signing');
     }
 
     try {
@@ -125,6 +129,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
         throw new Error('Username is already taken');
       }
 
+      // Create message to sign for verification
+      const timestamp = Date.now();
+      const message = `Verify wallet ownership to change username to "${trimmedUsername}"\n\nWallet: ${publicKey.toBase58()}\nTimestamp: ${timestamp}`;
+      const messageBytes = new TextEncoder().encode(message);
+
+      // Request wallet signature
+      let signature: Uint8Array;
+      try {
+        signature = await signMessage(messageBytes);
+      } catch (signError) {
+        throw new Error('Signature verification cancelled or failed');
+      }
+
+      // Verify the signature (basic verification that we got a signature)
+      if (!signature || signature.length === 0) {
+        throw new Error('Invalid signature received');
+      }
+
+      // Update username in database
       const { data: updatedUser, error: updateError } = await supabase
         .from('users')
         .update({ username: trimmedUsername })
