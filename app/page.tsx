@@ -3,6 +3,8 @@
 import WalletButton from "./components/WalletButton";
 import UsernameForm from "./components/UsernameForm";
 import UserProfile from "./components/UserProfile";
+import TeamForm from "./components/TeamForm";
+import SuccessBanner from "./components/SuccessBanner";
 import { useAuth } from "./providers/AuthProvider";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
@@ -12,6 +14,11 @@ export default function Home() {
   const { connected } = useWallet();
   const { user, loading } = useAuth();
   const [showProfile, setShowProfile] = useState(false);
+  const [showCreateTeam, setShowCreateTeam] = useState(false);
+  const [showJoinTeam, setShowJoinTeam] = useState(false);
+  const [showSuccessBanner, setShowSuccessBanner] = useState(false);
+  const [successAction, setSuccessAction] = useState<'create' | 'join' | null>(null);
+  const [successTeamName, setSuccessTeamName] = useState<string>("");
 
   // Show loading state
   if (connected && loading) {
@@ -76,6 +83,52 @@ export default function Home() {
     );
   }
 
+  // Show team forms (create or join)
+  if (showCreateTeam || showJoinTeam) {
+    const isCreateMode = showCreateTeam;
+    const title = isCreateMode ? "Create Team" : "Join Team";
+    const onBack = () => isCreateMode ? setShowCreateTeam(false) : setShowJoinTeam(false);
+    const onFormSuccess = (teamName: string) => {
+      isCreateMode ? setShowCreateTeam(false) : setShowJoinTeam(false);
+      setSuccessAction(isCreateMode ? 'create' : 'join');
+      setSuccessTeamName(teamName);
+      setShowSuccessBanner(true);
+      // Auto-hide banner after 5 seconds
+      setTimeout(() => setShowSuccessBanner(false), 5000);
+    };
+    const onFormCancel = () => isCreateMode ? setShowCreateTeam(false) : setShowJoinTeam(false);
+
+    return (
+      <div className="min-h-screen bg-gray-50">
+        {/* Header with back button */}
+        <header className="bg-white shadow-sm border-b">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center h-16">
+              <button
+                onClick={onBack}
+                className="flex items-center text-blue-600 hover:text-blue-800 font-medium"
+              >
+                ← Back to Home
+              </button>
+              <h1 className="ml-4 text-xl font-semibold text-gray-900">{title}</h1>
+            </div>
+          </div>
+        </header>
+        
+        {/* Form content */}
+        <div className="flex items-center justify-center min-h-[calc(100vh-4rem)] py-8 px-4">
+          <div className="w-full max-w-2xl">
+            <TeamForm 
+              mode={isCreateMode ? 'create' : 'join'}
+              onSuccess={onFormSuccess}
+              onCancel={onFormCancel}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Main app interface for authenticated users
   return (
     <div className="min-h-screen bg-gray-50">
@@ -101,16 +154,41 @@ export default function Home() {
         </div>
       </header>
 
+      <SuccessBanner 
+        isVisible={showSuccessBanner}
+        action={successAction}
+        teamName={successTeamName}
+        onClose={() => setShowSuccessBanner(false)}
+      />
+
       {/* Main content */}
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
-          <div className="text-center">
+            <div className="text-center">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
               You&apos;re all set!
             </h2>
             <p className="text-gray-600 mb-8">
               Your wallet is connected and you&apos;re authenticated.
             </p>
+            
+            {/* Quick Actions */}
+            <div className="mb-8 space-y-4">
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <button
+                  onClick={() => setShowCreateTeam(true)}
+                  className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors text-lg font-medium shadow-md"
+                >
+                  + Create a Team
+                </button>
+                <button
+                  onClick={() => setShowJoinTeam(true)}
+                  className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors text-lg font-medium shadow-md"
+                >
+                  Join a Team
+                </button>
+              </div>
+            </div>
             
             <div className="bg-white p-6 rounded-lg shadow-md max-w-md mx-auto">
               <h3 className="text-lg font-semibold mb-4 text-gray-900">Account Info</h3>
