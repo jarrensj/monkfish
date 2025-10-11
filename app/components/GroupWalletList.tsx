@@ -43,8 +43,6 @@ export default function GroupWalletList() {
           return;
         }
 
-        console.log("Team members data:", teamMembers);
-        console.log("User ID:", user.id);
 
         if (!teamMembers || teamMembers.length === 0) {
           // Also check if there are any teams where user is the owner
@@ -53,9 +51,6 @@ export default function GroupWalletList() {
             .select("*")
             .eq("owner", user.id);
           
-          console.log("Teams owned by user:", ownedTeams);
-          console.log("Owned teams error:", ownedError);
-          
           setTeams([]);
           setLoading(false);
           return;
@@ -63,7 +58,6 @@ export default function GroupWalletList() {
 
         // Get team IDs
         const teamIds = teamMembers.map(tm => tm.team_id);
-        console.log("Team IDs to fetch:", teamIds);
         
         // Fetch team details from teams_public view
         const { data: teamsData, error: teamsError } = await supabase
@@ -71,7 +65,6 @@ export default function GroupWalletList() {
           .select("id, team_name, wallet_address, owner, created_at")
           .in("id", teamIds);
 
-        console.log("Teams data:", teamsData);
         
         if (teamsError) {
           console.error("Error fetching teams:", teamsError);
