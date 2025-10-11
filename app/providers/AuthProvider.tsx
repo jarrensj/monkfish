@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 import { useWallet } from '@solana/wallet-adapter-react';
 import { createSupabaseBrowserClient, User } from '@/lib/supabase';
 import { AuthError } from '@supabase/supabase-js';
+import { useWalletVerification } from '@/hooks/useWalletVerification';
 
 interface AuthContextType {
   user: User | null;
@@ -25,7 +26,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { publicKey, connected, signMessage } = useWallet();
+  const { publicKey, connected } = useWallet();
+  const { verifyUsernameChange } = useWalletVerification();
   const supabase = createSupabaseBrowserClient();
 
   // Check if user exists or create new user
@@ -105,10 +107,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       throw new Error('User not authenticated');
     }
 
-    if (!publicKey || !connected || !signMessage) {
-      throw new Error('Wallet not connected or does not support signing');
-    }
-
     try {
       setError(null);
       
@@ -129,23 +127,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         throw new Error('Username is already taken');
       }
 
-      // Create message to sign for verification
-      const timestamp = Date.now();
-      const message = `Verify wallet ownership to change username to "${trimmedUsername}"\n\nWallet: ${publicKey.toBase58()}\nTimestamp: ${timestamp}`;
-      const messageBytes = new TextEncoder().encode(message);
-
-      // Request wallet signature
-      let signature: Uint8Array;
-      try {
-        signature = await signMessage(messageBytes);
-      } catch (signError) {
-        throw new Error('Signature verification cancelled or failed');
-      }
-
-      // Verify the signature (basic verification that we got a signature)
-      if (!signature || signature.length === 0) {
-        throw new Error('Invalid signature received');
-      }
+      // Verify wallet ownership with signature
+      await verifyUsernameChange(trimmedUsername);
 
       // Update username in database
       const { data: updatedUser, error: updateError } = await supabase
