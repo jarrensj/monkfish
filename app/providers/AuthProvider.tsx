@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 import { useWallet } from '@solana/wallet-adapter-react';
 import { createSupabaseBrowserClient, User } from '@/lib/supabase';
 import { AuthError } from '@supabase/supabase-js';
+import { useUserOperations } from '@/hooks/useUserOperations';
 
 interface AuthContextType {
   user: User | null;
@@ -11,8 +12,7 @@ interface AuthContextType {
   error: string | null;
   signInWithWallet: () => Promise<void>;
   signOut: () => Promise<void>;
-  updateUsername: (username: string) => Promise<void>;
-  checkUsernameAvailable: (username: string) => Promise<boolean>;
+  setUser: (user: User | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,7 +25,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { publicKey, connected, signMessage } = useWallet();
+  const { publicKey, connected } = useWallet();
   const supabase = createSupabaseBrowserClient();
 
   // Check if user exists or create new user
@@ -99,98 +99,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  // Update username with wallet signature verification
-  const updateUsername = async (username: string) => {
-    if (!user) {
-      throw new Error('User not authenticated');
-    }
-
-    if (!publicKey || !connected || !signMessage) {
-      throw new Error('Wallet not connected or does not support signing');
-    }
-
-    try {
-      setError(null);
-      
-      // Trim and validate username
-      const trimmedUsername = username.trim();
-      if (!trimmedUsername) {
-        throw new Error('Username cannot be empty');
-      }
-
-      // Check if this is already their current username
-      if (user.username && user.username.toLowerCase() === trimmedUsername.toLowerCase()) {
-        throw new Error('This is already your current username');
-      }
-
-      // Check if username is available
-      const isAvailable = await checkUsernameAvailable(trimmedUsername);
-      if (!isAvailable) {
-        throw new Error('Username is already taken');
-      }
-
-      // Create message to sign for verification
-      const timestamp = Date.now();
-      const message = `Verify wallet ownership to change username to "${trimmedUsername}"\n\nWallet: ${publicKey.toBase58()}\nTimestamp: ${timestamp}`;
-      const messageBytes = new TextEncoder().encode(message);
-
-      // Request wallet signature
-      let signature: Uint8Array;
-      try {
-        signature = await signMessage(messageBytes);
-      } catch (signError) {
-        throw new Error('Signature verification cancelled or failed');
-      }
-
-      // Verify the signature (basic verification that we got a signature)
-      if (!signature || signature.length === 0) {
-        throw new Error('Invalid signature received');
-      }
-
-      // Update username in database
-      const { data: updatedUser, error: updateError } = await supabase
-        .from('users')
-        .update({ username: trimmedUsername })
-        .eq('id', user.id)
-        .select()
-        .single();
-
-      if (updateError) {
-        throw updateError;
-      }
-
-      setUser(updatedUser);
-    } catch (err) {
-      console.error('Error updating username:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to update username';
-      setError(errorMessage);
-      throw new Error(errorMessage);
-    }
-  };
-
-  // Check if username is available
-  const checkUsernameAvailable = async (username: string): Promise<boolean> => {
-    try {
-      const trimmedUsername = username.trim();
-      if (!trimmedUsername) return false;
-
-      const { data, error } = await supabase
-        .from('users')
-        .select('id')
-        .ilike('username', trimmedUsername)
-        .neq('id', user?.id || '');
-
-      if (error) {
-        console.error('Error checking username availability:', error);
-        return false;
-      }
-
-      return data.length === 0;
-    } catch (err) {
-      console.error('Error checking username availability:', err);
-      return false;
-    }
-  };
 
   // Auto-authenticate when wallet connects/disconnects or switches
   useEffect(() => {
@@ -227,8 +135,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     error,
     signInWithWallet,
     signOut,
-    updateUsername,
-    checkUsernameAvailable,
+    setUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
