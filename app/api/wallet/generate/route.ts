@@ -9,8 +9,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { teamName, teamId, userId } = body;
 
-    console.log('Wallet generation request:', { teamName, teamId, userId });
-
     // Validate required fields
     if (!userId) {
       console.error('Missing userId in request');
@@ -82,15 +80,10 @@ export async function POST(request: NextRequest) {
 
     const { data: team, error: teamError } = await teamQuery.single();
 
-    console.log('Team lookup result:', { team, teamError });
-
     // If team exists, verify authorization
     if (team && !teamError) {
-      console.log('Team exists - checking authorization');
-      
       // Check if user is the team owner
       const isOwner = team.owner === userId;
-      console.log('Owner check:', { isOwner, teamOwner: team.owner, requestUserId: userId });
 
       // Check if user is a team member
       const { data: membership, error: membershipError } = await supabase
@@ -101,7 +94,6 @@ export async function POST(request: NextRequest) {
         .single();
 
       const isMember = !membershipError && membership !== null;
-      console.log('Member check:', { isMember, membership, membershipError });
 
       // Authorize: user must be owner or member
       if (!isOwner && !isMember) {
@@ -115,11 +107,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      console.log('Authorization passed - user is owner or member');
-    } else {
-      // Team doesn't exist - this is a new team creation
-      console.log('Team does not exist - proceeding with new team creation');
-    }
+    } 
 
     // Call the backend wallet generation service
     const response = await fetch(`${BACKEND_URL}/api/wallet/generate`, {
@@ -140,8 +128,6 @@ export async function POST(request: NextRequest) {
       throw new Error(data.error || 'Backend wallet generation failed');
     }
 
-    console.log('Wallet generated successfully:', data);
-    
     return NextResponse.json({
       success: true,
       publicAddress: data.publicAddress,
