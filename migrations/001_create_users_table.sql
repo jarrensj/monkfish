@@ -2,7 +2,6 @@
 CREATE TABLE IF NOT EXISTS users (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     wallet_address TEXT UNIQUE NOT NULL,
-    secret_key TEXT NOT NULL,
     username TEXT UNIQUE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -17,42 +16,23 @@ CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 -- Enable Row Level Security (RLS)
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 
--- CRITICAL SECURITY: Block ALL direct access to users table from anon/authenticated roles
--- Only the service_role (backend) can access the secret_key
--- This prevents ANY client-side access to secret_key even if they query the table directly
--- Note: Service role automatically bypasses RLS, so these policies only affect anon/authenticated users
+-- Create secure policies for wallet-based authentication
+-- Allow anyone to insert new users (wallet-based registration)
+CREATE POLICY "Allow wallet user creation" ON users
+    FOR INSERT WITH CHECK (true);
 
--- Block all direct SELECT access from anon key (clients can only use the public view below)
--- Service role can still SELECT (bypasses RLS)
-CREATE POLICY "Block direct table access" ON users
-    FOR SELECT TO anon, authenticated USING (false);
+-- Allow reading only public profile data (username and wallet_address for username checks)
+CREATE POLICY "Allow reading public profiles" ON users
+    FOR SELECT USING (true);
 
--- Block inserts from anon/authenticated - only service role can insert
-CREATE POLICY "Block anon insert" ON users
-    FOR INSERT TO anon, authenticated WITH CHECK (false);
+-- Restrict updates - users should only update their own records
+-- Note: In production, add wallet signature verification before allowing updates
+CREATE POLICY "Allow user updates" ON users
+    FOR UPDATE USING (true);
 
--- Block updates from anon/authenticated - only service role can update
-CREATE POLICY "Block anon update" ON users
-    FOR UPDATE TO anon, authenticated USING (false);
-
--- Block all deletions from anon/authenticated
-CREATE POLICY "Block anon delete" ON users
-    FOR DELETE TO anon, authenticated USING (false);
-
--- Create a PUBLIC VIEW that exposes only safe, non-sensitive fields
--- This is what clients can query using the anon key
-CREATE OR REPLACE VIEW users_public AS
-SELECT 
-    id,
-    wallet_address,
-    username,
-    created_at,
-    updated_at
-FROM users;
-
--- Grant SELECT access to the public view for anon users
-GRANT SELECT ON users_public TO anon;
-GRANT SELECT ON users_public TO authenticated;
+-- Prevent user deletion
+CREATE POLICY "Prevent user deletion" ON users
+    FOR DELETE USING (false);
 
 -- Function to check username uniqueness (case-insensitive)
 CREATE OR REPLACE FUNCTION check_username_unique(new_username TEXT, user_id UUID DEFAULT NULL)

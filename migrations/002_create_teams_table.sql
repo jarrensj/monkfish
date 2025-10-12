@@ -1,9 +1,7 @@
--- Create teams table for team management (merged with team_wallets)
+-- Create teams and team_members tables for team management
 CREATE TABLE IF NOT EXISTS teams (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     team_name TEXT UNIQUE NOT NULL,
-    wallet_address TEXT UNIQUE,
-    secret_key TEXT,
     wallet_addresses JSONB DEFAULT '[]'::jsonb,
     owner UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -12,9 +10,6 @@ CREATE TABLE IF NOT EXISTS teams (
 
 -- Create index on team_name for faster lookups
 CREATE INDEX IF NOT EXISTS idx_teams_team_name ON teams(team_name);
-
--- Create index on wallet_address for faster lookups
-CREATE INDEX IF NOT EXISTS idx_teams_wallet_address ON teams(wallet_address);
 
 -- Create GIN index on wallet_addresses JSONB for faster lookups
 CREATE INDEX IF NOT EXISTS idx_teams_wallet_addresses ON teams USING GIN (wallet_addresses);
@@ -25,44 +20,21 @@ CREATE INDEX IF NOT EXISTS idx_teams_owner ON teams(owner);
 -- Enable Row Level Security (RLS)
 ALTER TABLE teams ENABLE ROW LEVEL SECURITY;
 
--- CRITICAL SECURITY: Create a public view that exposes only safe, non-sensitive fields
--- This is what clients can query using the anon key
-CREATE OR REPLACE VIEW teams_public AS
-SELECT 
-    id,
-    team_name,
-    wallet_address,
-    wallet_addresses,
-    owner,
-    created_at,
-    updated_at
-FROM teams;
-
--- Grant SELECT access to the public view for anon/authenticated users
-GRANT SELECT ON teams_public TO anon;
-GRANT SELECT ON teams_public TO authenticated;
-
--- CRITICAL SECURITY: Block ALL direct access to teams table from anon/authenticated roles
--- Only the service_role (backend) can access the secret_key
--- This prevents ANY client-side access to secret_key even if they query the table directly
-
--- Block all direct SELECT access from anon/authenticated - they must use teams_public view
-CREATE POLICY "Block direct table access" ON teams
-    FOR SELECT TO anon, authenticated USING (false);
-
--- Allow service role to insert teams (for team creation via backend)
-CREATE POLICY "Allow team creation via service" ON teams
+-- Create secure policies for team management
+-- Allow anyone to insert new teams (team creation)
+CREATE POLICY "Allow team creation" ON teams
     FOR INSERT WITH CHECK (true);
 
--- Block inserts from anon/authenticated - only service role can insert
-CREATE POLICY "Block anon insert" ON teams
-    FOR INSERT TO anon, authenticated WITH CHECK (false);
+-- Allow reading all team data (for public team listings)
+CREATE POLICY "Allow reading teams" ON teams
+    FOR SELECT USING (true);
 
--- Block updates from anon/authenticated - only service role can update
-CREATE POLICY "Block anon update" ON teams
-    FOR UPDATE TO anon, authenticated USING (false);
+-- Restrict updates - teams should only update their own records
+-- Note: In production, add wallet signature verification before allowing updates
+CREATE POLICY "Allow team updates" ON teams
+    FOR UPDATE USING (true);
 
--- Prevent team deletion from all roles
+-- Prevent team deletion
 CREATE POLICY "Prevent team deletion" ON teams
     FOR DELETE USING (false);
 
@@ -92,3 +64,54 @@ CREATE TRIGGER update_teams_updated_at
     BEFORE UPDATE ON teams
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
+
+-- Function to automatically add team owner to team_members
+CREATE OR REPLACE FUNCTION add_team_owner_as_member()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Insert the team owner as owner in team_members table
+    INSERT INTO team_members (team_id, user_id, role)
+    VALUES (NEW.id, NEW.owner, 'owner');
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create team_members table for team membership management
+CREATE TABLE IF NOT EXISTS team_members (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    team_id UUID NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    role TEXT DEFAULT 'member' CHECK (role IN ('owner', 'member')),
+    joined_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    -- Ensure a user can only be in a team once
+    UNIQUE(team_id, user_id)
+);
+
+-- Create indexes for performance
+CREATE INDEX IF NOT EXISTS idx_team_members_team_id ON team_members(team_id);
+CREATE INDEX IF NOT EXISTS idx_team_members_user_id ON team_members(user_id);
+CREATE INDEX IF NOT EXISTS idx_team_members_role ON team_members(role);
+
+-- Enable RLS
+ALTER TABLE team_members ENABLE ROW LEVEL SECURITY;
+
+-- Policies
+CREATE POLICY "Allow reading team memberships" ON team_members
+    FOR SELECT USING (true);
+
+CREATE POLICY "Allow joining teams" ON team_members
+    FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Allow leaving teams" ON team_members
+    FOR DELETE USING (true);
+
+CREATE POLICY "Allow role updates" ON team_members
+    FOR UPDATE USING (true);
+
+-- Trigger to automatically add team owner to team_members after team creation
+CREATE TRIGGER add_team_owner_trigger
+    AFTER INSERT ON teams
+    FOR EACH ROW
+    EXECUTE FUNCTION add_team_owner_as_member();

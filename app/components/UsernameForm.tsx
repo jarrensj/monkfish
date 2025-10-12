@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '@/app/providers/AuthProvider';
+import { useUserProfile } from '@/hooks/useUserProfile';
 
 interface UsernameFormProps {
   isFirstTime?: boolean;
@@ -15,7 +16,8 @@ export default function UsernameForm({ isFirstTime = false, onComplete }: Userna
   const [validationError, setValidationError] = useState('');
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
 
-  const { updateUsername, checkUsernameAvailable, user, error } = useAuth();
+  const { user } = useAuth();
+  const { updateUsername, checkUsernameAvailable, error: profileError, isUpdating } = useUserProfile();
 
   // Validate username format
   const validateUsername = (value: string): string => {
@@ -111,14 +113,11 @@ export default function UsernameForm({ isFirstTime = false, onComplete }: Userna
       return;
     }
 
-    setIsSubmitting(true);
     try {
       await updateUsername(trimmed);
       onComplete?.();
     } catch (err) {
-      // Error is handled by the auth context
-    } finally {
-      setIsSubmitting(false);
+      // Error is handled by the useUserProfile hook
     }
   };
 
@@ -196,29 +195,29 @@ export default function UsernameForm({ isFirstTime = false, onComplete }: Userna
             <p className="text-green-600 text-sm mt-1">Username is available!</p>
           )}
           
-          {error && (
-            <p className="text-red-600 text-sm mt-1">{error}</p>
+          {profileError && (
+            <p className="text-red-600 text-sm mt-1">{profileError}</p>
           )}
         </div>
 
         <div className="flex gap-3">
           <button
             type="submit"
-            disabled={isSubmitting || !!validationError || isAvailable !== true}
+            disabled={isUpdating || !!validationError || isAvailable !== true}
             className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors ${
-              isSubmitting || !!validationError || isAvailable !== true
+              isUpdating || !!validationError || isAvailable !== true
                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 : 'bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
             }`}
           >
-            {isSubmitting ? 'Saving…' : isFirstTime ? 'Create Username' : 'Update Username'}
+            {isUpdating ? 'Verifying & Saving…' : isFirstTime ? 'Create Username' : 'Sign & Update Username'}
           </button>
           
           {isFirstTime && (
             <button
               type="button"
               onClick={handleSkip}
-              disabled={isSubmitting}
+              disabled={isUpdating}
               className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium transition-colors"
             >
               Skip for now
@@ -228,9 +227,9 @@ export default function UsernameForm({ isFirstTime = false, onComplete }: Userna
       </form>
 
       {!isFirstTime && (
-        <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-          <p className="text-sm text-yellow-800">
-            <strong>Note:</strong> In the future, you&apos;ll need to sign a transaction to verify wallet ownership before changing your username.
+        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+          <p className="text-sm text-blue-800">
+            <strong>Security:</strong> You&apos;ll be asked to sign a message with your wallet to verify ownership before changing your username.
           </p>
         </div>
       )}
