@@ -115,7 +115,7 @@ export default function GroupWalletList() {
       <div className="bg-white p-6 rounded-lg shadow-md">
         <div className="flex items-center justify-center">
           <div className="animate-spin h-6 w-6 border-2 border-blue-500 border-t-transparent rounded-full"></div>
-          <span className="ml-2 text-gray-600">Loading teams...</span>
+          <span className="ml-2 text-gray-600">Loading teams…</span>
         </div>
       </div>
     );
