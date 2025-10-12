@@ -117,7 +117,8 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({ 
         teamName, 
-        owner: team?.owner || userId // Use existing team owner or current user for new teams
+        owner: team?.owner || userId, // Use existing team owner or current user for new teams
+        userId // Required by backend for authentication
       }),
     });
 

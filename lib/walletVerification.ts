@@ -46,7 +46,7 @@ export class WalletVerificationService {
     try {
       signature = await signMessage(messageBytes);
     } catch (signError) {
-      throw new Error('Signature verification cancelled or failed');
+      throw new Error('Signature verification cancelled or failed', { cause: signError });
     }
 
     // Verify the signature (basic verification that we got a signature)
@@ -63,7 +63,7 @@ export class WalletVerificationService {
    * @param walletAddress - The wallet address
    * @returns Formatted message for signing
    */
-  static createUsernameChangeMessage(newUsername: string, walletAddress: string): VerificationOptions {
+  static createUsernameChangeMessage(newUsername: string): VerificationOptions {
     return {
       action: 'Change Username',
       details: `New username: "${newUsername}"`,

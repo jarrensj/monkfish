@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { createSupabaseBrowserClient, User } from '@/lib/supabase';
 
@@ -11,6 +11,12 @@ interface AuthContextType {
   signInWithWallet: () => Promise<void>;
   signOut: () => Promise<void>;
   setUser: (user: User | null) => void;
+}
+
+interface ErrorWithDetails {
+  message?: string;
+  code?: string;
+  details?: string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -28,7 +34,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const supabase = createSupabaseBrowserClient();
 
   // Check if user exists or create new user
-  const handleUserAuth = async (walletAddress: string) => {
+  const handleUserAuth = useCallback(async (walletAddress: string) => {
     try {
       setError(null);
       
@@ -63,16 +69,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } catch (err) {
       console.error('Error handling user auth:', err);
       // Extract error details for better debugging
+      const errorWithDetails = err as ErrorWithDetails;
       const errorMsg = err && typeof err === 'object' && 'message' in err 
-        ? (err as any).message 
+        ? errorWithDetails.message 
         : err instanceof Error ? err.message : 'Authentication failed';
-      console.error('Error details:', { message: errorMsg, code: (err as any)?.code, details: (err as any)?.details });
-      setError(errorMsg);
+      console.error('Error details:', { message: errorMsg, code: errorWithDetails?.code, details: errorWithDetails?.details });
+      setError(errorMsg || 'Authentication failed');
     }
-  };
+  }, [supabase]);
 
   // Sign in with wallet
-  const signInWithWallet = async () => {
+  const signInWithWallet = useCallback(async () => {
     if (!publicKey || !connected) {
       setError('Wallet not connected');
       return;
@@ -90,7 +97,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [publicKey, connected, handleUserAuth]);
 
   // Sign out
   const signOut = async () => {
@@ -131,7 +138,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setUser(null);
       setError(null);
     }
-  }, [mounted, connected, publicKey, user]);
+  }, [mounted, connected, publicKey, user, signInWithWallet]);
 
   // Initial loading state
   useEffect(() => {

@@ -12,7 +12,7 @@ interface UsernameFormProps {
 export default function UsernameForm({ isFirstTime = false, onComplete }: UsernameFormProps) {
   const [username, setUsername] = useState('');
   const [isChecking, setIsChecking] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitting] = useState(false);
   const [validationError, setValidationError] = useState('');
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
 
@@ -117,7 +117,8 @@ export default function UsernameForm({ isFirstTime = false, onComplete }: Userna
       await updateUsername(trimmed);
       onComplete?.();
     } catch (err) {
-      // Error is handled by the useUserProfile hook
+      // Error is handled and displayed by the useUserProfile hook
+      console.error('Failed to update username:', err);
     }
   };
 

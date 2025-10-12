@@ -51,7 +51,24 @@ export default function GroupWalletList() {
             .select("*")
             .eq("owner", user.id);
           
-          setTeams([]);
+          if (ownedError) {
+            console.error("Error fetching owned teams:", ownedError);
+            setError("Failed to load teams");
+            return;
+          }
+
+          if (ownedTeams && ownedTeams.length > 0) {
+            // Show owned teams with owner role, only if they have wallet addresses
+            const teamsWithRoles = ownedTeams
+              .filter((team: Team) => team.wallet_address)
+              .map((team: Team) => ({
+                ...team,
+                role: 'owner'
+              }));
+            setTeams(teamsWithRoles);
+          } else {
+            setTeams([]);
+          }
           setLoading(false);
           return;
         }
@@ -74,7 +91,7 @@ export default function GroupWalletList() {
 
         // Merge team data with roles
         const teamsWithRoles = teamsData
-          .map((team: any) => {
+          .map((team: { id: string; team_name: string; wallet_address: string | null; owner: string; created_at: string }) => {
             const membership = teamMembers.find(tm => tm.team_id === team.id);
             return {
               id: team.id,

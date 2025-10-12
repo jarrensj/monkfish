@@ -19,13 +19,6 @@ export default function UserProfile() {
     setIsEditingUsername(false);
   };
 
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-    } catch (err) {
-      console.error('Error signing out:', err);
-    }
-  };
 
   const handleDisconnectWallet = async () => {
     try {

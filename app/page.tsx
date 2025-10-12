@@ -91,7 +91,11 @@ export default function Home() {
     const title = isCreateMode ? "Create Team" : "Join Team";
     const onBack = () => isCreateMode ? setShowCreateTeam(false) : setShowJoinTeam(false);
     const onFormSuccess = (teamName: string) => {
-      isCreateMode ? setShowCreateTeam(false) : setShowJoinTeam(false);
+      if (isCreateMode) {
+        setShowCreateTeam(false);
+      } else {
+        setShowJoinTeam(false);
+      }
       setSuccessAction(isCreateMode ? 'create' : 'join');
       setSuccessTeamName(teamName);
       setShowSuccessBanner(true);
