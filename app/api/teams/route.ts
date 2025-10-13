@@ -1,0 +1,127 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { createSupabaseBrowserClient } from '@/lib/supabase'
+import { generateUniqueSlug } from '@/lib/slugUtils'
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const { team_name, owner, wallet_addresses = [] } = body
+
+    // Validate required fields
+    if (!team_name || !owner) {
+      return NextResponse.json(
+        { error: 'Team name and owner are required' },
+        { status: 400 }
+      )
+    }
+
+    // Validate team name length
+    if (team_name.trim().length === 0) {
+      return NextResponse.json(
+        { error: 'Team name cannot be empty' },
+        { status: 400 }
+      )
+    }
+
+    if (team_name.length > 100) {
+      return NextResponse.json(
+        { error: 'Team name must be 100 characters or less' },
+        { status: 400 }
+      )
+    }
+
+    const supabase = createSupabaseBrowserClient()
+
+    // Generate unique slug from team name
+    const slug = await generateUniqueSlug(team_name.trim())
+
+    // Create the team
+    const { data: team, error: teamError } = await supabase
+      .from('teams')
+      .insert({
+        team_name: team_name.trim(),
+        slug,
+        owner,
+        wallet_addresses
+      })
+      .select()
+      .single()
+
+    if (teamError) {
+      console.error('Error creating team:', teamError)
+      
+      // Handle specific database errors
+      if (teamError.code === '23505') {
+        if (teamError.message.includes('team_name')) {
+          return NextResponse.json(
+            { error: 'A team with this name already exists' },
+            { status: 409 }
+          )
+        }
+        if (teamError.message.includes('slug')) {
+          return NextResponse.json(
+            { error: 'Unable to generate unique slug. Please try a different team name.' },
+            { status: 409 }
+          )
+        }
+      }
+
+      return NextResponse.json(
+        { error: 'Failed to create team' },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json(team, { status: 201 })
+
+  } catch (error) {
+    console.error('API Error:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const limit = parseInt(searchParams.get('limit') || '50')
+    const offset = parseInt(searchParams.get('offset') || '0')
+
+    const supabase = createSupabaseBrowserClient()
+
+    const { data: teams, error } = await supabase
+      .from('teams')
+      .select(`
+        id,
+        team_name,
+        slug,
+        wallet_addresses,
+        created_at,
+        owner,
+        team_members!inner(
+          user:users(username, wallet_address)
+        )
+      `)
+      .range(offset, offset + limit - 1)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching teams:', error)
+      return NextResponse.json(
+        { error: 'Failed to fetch teams' },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json(teams)
+
+  } catch (error) {
+    console.error('API Error:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}

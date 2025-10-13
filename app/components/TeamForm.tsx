@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase";
 import { useAuth } from "@/app/providers/AuthProvider";
 import { TEAM_FORM_CONFIG } from "@/config/teamFormConfig";
+import { generateSlug } from "@/lib/slugUtils";
 
 interface TeamFormProps {
   mode: 'create' | 'join';
@@ -19,6 +20,12 @@ export default function TeamForm({ mode, onSuccess, onCancel }: TeamFormProps) {
   
   const config = useMemo(() => TEAM_FORM_CONFIG[mode], [mode]);
   
+  // Generate slug preview for create mode
+  const slugPreview = useMemo(() => {
+    if (mode !== 'create' || !teamName.trim()) return '';
+    return generateSlug(teamName.trim());
+  }, [mode, teamName]);
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -31,15 +38,34 @@ export default function TeamForm({ mode, onSuccess, onCancel }: TeamFormProps) {
     setError("");
 
     try {
-      const supabase = createSupabaseBrowserClient();
-      
       if (mode === 'create') {
-        const { error } = await supabase.from("teams").insert({
-          team_name: teamName.trim(),
-          owner: user.id,
+        // Use API route for team creation
+        const response = await fetch('/api/teams', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            team_name: teamName.trim(),
+            owner: user.id,
+            wallet_addresses: []
+          })
         });
-        if (error) throw error;
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          setError(data.error || 'Failed to create team');
+          return;
+        }
+
+        // Success - redirect with the created team's slug
+        onSuccess?.(data.slug);
+        
       } else {
+        // Join team logic remains the same (direct database access)
+        const supabase = createSupabaseBrowserClient();
+        
         // Single query with error handling
         const { data: team, error: teamError } = await supabase
           .from("teams")
@@ -57,20 +83,23 @@ export default function TeamForm({ mode, onSuccess, onCancel }: TeamFormProps) {
           user_id: user.id,
           role: 'member'
         });
-        if (error) throw error;
-      }
+        
+        if (error) {
+          if (error.code === '23505') {
+            setError("Already a member of this team");
+          } else {
+            setError("Failed to join team. Please try again.");
+          }
+          return;
+        }
 
-      // Immediate redirect - no delay
-      onSuccess?.(teamName.trim());
+        // Success - redirect with team name (for join mode)
+        onSuccess?.(teamName.trim());
+      }
       
     } catch (err: unknown) {
-      // Simple but helpful error messages
-      const error = err as { code?: string };
-      if (error.code === '23505') {
-        setError(mode === 'create' ? "Team name already exists" : "Already a member");
-      } else {
-        setError("Something went wrong. Please try again.");
-      }
+      console.error('Team operation error:', err);
+      setError("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -98,6 +127,27 @@ export default function TeamForm({ mode, onSuccess, onCancel }: TeamFormProps) {
             disabled={loading}
             maxLength={100}
           />
+          
+          {/* Slug Preview for Create Mode */}
+          {mode === 'create' && slugPreview && (
+            <div className="mt-3 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg shadow-sm">
+              <div className="flex items-center mb-2">
+                <svg className="w-4 h-4 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                </svg>
+                <p className="text-sm text-blue-700 font-semibold">Your team will be available at:</p>
+              </div>
+              <div className="bg-white border border-blue-200 rounded-md p-3 font-mono text-sm shadow-inner">
+                <div className="flex items-center">
+                  <span className="text-gray-500">localhost:3000/team/</span>
+                  <span className="font-bold text-blue-700 bg-blue-100 px-2 py-1 rounded-md ml-1 border border-blue-300">
+                    {slugPreview}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+          
           {mode === 'join' && (
             <p className="text-sm text-gray-500 mt-2">
               Enter the name of the team you&apos;d like to join
