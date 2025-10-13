@@ -2,6 +2,7 @@
 CREATE TABLE IF NOT EXISTS teams (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     team_name TEXT UNIQUE NOT NULL,
+    slug TEXT UNIQUE NOT NULL,
     wallet_addresses JSONB DEFAULT '[]'::jsonb,
     owner UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -10,6 +11,9 @@ CREATE TABLE IF NOT EXISTS teams (
 
 -- Create index on team_name for faster lookups
 CREATE INDEX IF NOT EXISTS idx_teams_team_name ON teams(team_name);
+
+-- Create index on slug for faster lookups
+CREATE INDEX IF NOT EXISTS idx_teams_slug ON teams(slug);
 
 -- Create GIN index on wallet_addresses JSONB for faster lookups
 CREATE INDEX IF NOT EXISTS idx_teams_wallet_addresses ON teams USING GIN (wallet_addresses);
@@ -64,6 +68,33 @@ CREATE TRIGGER update_teams_updated_at
     BEFORE UPDATE ON teams
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
+
+-- Function to generate slug from team name
+CREATE OR REPLACE FUNCTION generate_slug(team_name_input TEXT)
+RETURNS TEXT AS $$
+BEGIN
+    -- Convert to lowercase, replace spaces/special chars with hyphens, trim extra hyphens
+    RETURN trim(both '-' from lower(regexp_replace(trim(team_name_input), '[^a-zA-Z0-9]+', '-', 'g')));
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function for trigger to auto-generate slug
+CREATE OR REPLACE FUNCTION set_slug()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Only generate slug if not provided or empty
+    IF NEW.slug IS NULL OR trim(NEW.slug) = '' THEN
+        NEW.slug = generate_slug(NEW.team_name);
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger to auto-generate slug before insert/update
+CREATE TRIGGER generate_team_slug_trigger
+    BEFORE INSERT OR UPDATE ON teams
+    FOR EACH ROW
+    EXECUTE FUNCTION set_slug();
 
 -- Function to automatically add team owner to team_members
 CREATE OR REPLACE FUNCTION add_team_owner_as_member()

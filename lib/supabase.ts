@@ -25,6 +25,7 @@ export interface User {
 export interface Team {
   id: string
   team_name: string
+  slug: string
   wallet_addresses?: WalletAddress[]
   owner: string
   created_at: string
