@@ -34,7 +34,7 @@ export async function createUniqueSlug(
       query = query.neq('id', excludeId)
     }
     
-    const { data, error } = await query.single()
+    const { error } = await query.single()
     
     if (error && error.code === 'PGRST116') {
       // No conflict found (PGRST116 = no rows returned), slug is available
