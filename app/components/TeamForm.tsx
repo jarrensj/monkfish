@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase";
 import { useAuth } from "@/app/providers/AuthProvider";
 import { TEAM_FORM_CONFIG } from "@/config/teamFormConfig";
@@ -16,7 +16,15 @@ export default function TeamForm({ mode, onSuccess, onCancel }: TeamFormProps) {
   const [teamName, setTeamName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [baseUrl, setBaseUrl] = useState(process.env.NEXT_PUBLIC_BASE_URL || '');
   const { user } = useAuth();
+
+  // Set base URL from browser location when component mounts
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setBaseUrl(window.location.origin);
+    }
+  }, []);
   
   const config = useMemo(() => TEAM_FORM_CONFIG[mode], [mode]);
   
@@ -139,7 +147,9 @@ export default function TeamForm({ mode, onSuccess, onCancel }: TeamFormProps) {
               </div>
               <div className="bg-white border border-blue-200 rounded-md p-3 font-mono text-sm shadow-inner">
                 <div className="flex items-center">
-                  <span className="text-gray-500">localhost:3000/team/</span>
+                  <span className="text-gray-500">
+                    {baseUrl || 'your-domain.com'}/team/
+                  </span>
                   <span className="font-bold text-blue-700 bg-blue-100 px-2 py-1 rounded-md ml-1 border border-blue-300">
                     {slugPreview}
                   </span>
