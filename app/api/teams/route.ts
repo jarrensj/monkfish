@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseBrowserClient } from '@/lib/supabase'
 import { generateUniqueSlug } from '@/lib/slugUtils'
 
+/**
+ * POST /api/teams
+ * Creates a new team with the provided team name, owner, and wallet addresses.
+ * Validates input, generates a unique slug, and stores the team in the database.
+ */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -86,6 +91,11 @@ export async function POST(request: NextRequest) {
   }
 }
 
+/**
+ * GET /api/teams
+ * Retrieves a paginated list of teams with their members.
+ * Supports limit and offset query parameters for pagination.
+ */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)

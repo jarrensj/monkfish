@@ -23,11 +23,11 @@ export async function createUniqueSlug(
   let counter = 1
   
   while (true) {
-    // Check if slug already exists
+    // Check if slug already exists (case-insensitive)
     let query = supabase
       .from('teams')
       .select('id')
-      .eq('slug', slug)
+      .ilike('slug', slug)
     
     // Exclude current team when updating
     if (excludeId) {
