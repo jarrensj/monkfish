@@ -133,7 +133,7 @@ export default function TeamForm({ mode, onSuccess, onCancel }: TeamFormProps) {
             className="w-full px-4 py-3 text-lg text-gray-900 bg-white border-2 border-gray-300 rounded-lg placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500 transition-colors"
             placeholder={config.placeholder}
             disabled={loading}
-            maxLength={100}
+            maxLength={50}
           />
           
           {/* Slug Preview for Create Mode */}
