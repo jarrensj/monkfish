@@ -7,7 +7,8 @@ export function generateSlug(teamName: string): string {
   return teamName
     .trim()
     .toLowerCase()
-    .replace(/[^a-zA-Z0-9]+/g, '-')
+    .replace(/'/g, '') // Remove apostrophes (e.g., "kyle's" -> "kyles")
+    .replace(/[^a-zA-Z0-9]+/g, '-') // Replace other special chars with hyphens
     .replace(/^-+|-+$/g, '') // Remove leading/trailing hyphens
 }
 

@@ -30,15 +30,26 @@ export default function TeamForm({ mode, onSuccess, onCancel }: TeamFormProps) {
   
   // Generate slug preview for create mode
   const slugPreview = useMemo(() => {
-    if (mode !== 'create' || !teamName.trim()) return '';
-    return generateSlug(teamName.trim());
+    if (mode !== 'create') return '';
+    const trimmed = teamName.trim();
+    if (!trimmed) return '';
+    return generateSlug(trimmed);
   }, [mode, teamName]);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!user || !teamName.trim()) {
+    // Trim team name once for all validations and operations
+    const trimmedTeamName = teamName.trim();
+    
+    if (!user || !trimmedTeamName) {
       setError("Please enter a team name");
+      return;
+    }
+
+    // Validate team name doesn't contain hyphens or underscores
+    if (/[-_]/.test(trimmedTeamName)) {
+      setError("Team name cannot contain hyphens (-) or underscores (_)");
       return;
     }
 
@@ -54,7 +65,7 @@ export default function TeamForm({ mode, onSuccess, onCancel }: TeamFormProps) {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            team_name: teamName.trim(),
+            team_name: trimmedTeamName,
             owner: user.id,
             wallet_addresses: []
           })
@@ -78,7 +89,7 @@ export default function TeamForm({ mode, onSuccess, onCancel }: TeamFormProps) {
         const { data: team, error: teamError } = await supabase
           .from("teams")
           .select("id")
-          .ilike("team_name", teamName.trim())
+          .ilike("team_name", trimmedTeamName)
           .single();
           
         if (teamError || !team) {

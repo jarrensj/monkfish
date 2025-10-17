@@ -38,6 +38,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Validate team name doesn't contain hyphens or underscores (reserved for slug generation)
+    if (/[-_]/.test(trimmedTeamName)) {
+      return NextResponse.json(
+        { error: 'Team name cannot contain hyphens (-) or underscores (_)' },
+        { status: 400 }
+      )
+    }
+
     const supabase = createSupabaseBrowserClient()
 
     // Generate unique slug from team name
