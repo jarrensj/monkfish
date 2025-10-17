@@ -65,7 +65,6 @@ CREATE TRIGGER update_teams_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
-
 -- Function to automatically add team owner to team_members
 CREATE OR REPLACE FUNCTION add_team_owner_as_member()
 RETURNS TRIGGER AS $$

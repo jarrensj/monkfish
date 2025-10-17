@@ -15,17 +15,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Trim team name once for all subsequent operations
+    const trimmedTeamName = team_name.trim()
+
     // Validate team name length
-    if (team_name.trim().length === 0) {
+    if (trimmedTeamName.length === 0) {
       return NextResponse.json(
         { error: 'Team name cannot be empty' },
         { status: 400 }
       )
     }
 
-    if (team_name.length > 100) {
+    if (trimmedTeamName.length > 50) {
       return NextResponse.json(
-        { error: 'Team name must be 100 characters or less' },
+        { error: 'Team name must be 50 characters or less' },
         { status: 400 }
       )
     }
@@ -33,13 +36,13 @@ export async function POST(request: NextRequest) {
     const supabase = createSupabaseBrowserClient()
 
     // Generate unique slug from team name
-    const slug = await generateUniqueSlug(team_name.trim())
+    const slug = await generateUniqueSlug(trimmedTeamName)
 
     // Create the team
     const { data: team, error: teamError } = await supabase
       .from('teams')
       .insert({
-        team_name: team_name.trim(),
+        team_name: trimmedTeamName,
         slug,
         owner,
         wallet_addresses

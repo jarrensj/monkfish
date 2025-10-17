@@ -49,11 +49,6 @@ export async function createUniqueSlug(
     // Conflict found, try with counter
     slug = `${baseSlug}-${counter}`
     counter++
-    
-    // Prevent infinite loop (though very unlikely)
-    if (counter > 1000) {
-      throw new Error('Unable to generate unique slug after 1000 attempts')
-    }
   }
 }
 
