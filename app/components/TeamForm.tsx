@@ -28,28 +28,35 @@ export default function TeamForm({ mode, onSuccess, onCancel }: TeamFormProps) {
   
   const config = useMemo(() => TEAM_FORM_CONFIG[mode], [mode]);
   
+  // Trim team name once and memoize for all validations
+  const trimmedTeamName = useMemo(() => teamName.trim(), [teamName]);
+
   // Generate slug preview for create mode
   const slugPreview = useMemo(() => {
-    if (mode !== 'create') return '';
-    const trimmed = teamName.trim();
-    if (!trimmed) return '';
-    return generateSlug(trimmed);
-  }, [mode, teamName]);
+    if (mode !== 'create' || !trimmedTeamName) return '';
+    // Remove invalid characters before generating slug for preview
+    const sanitized = trimmedTeamName.replace(/[^a-zA-Z0-9\s]/g, '');
+    return generateSlug(sanitized);
+  }, [mode, trimmedTeamName]);
+
+  // Check for invalid characters in team name
+  const hasInvalidChars = useMemo(() => {
+    if (mode !== 'create' || !trimmedTeamName) return false;
+    return !/^[a-zA-Z0-9\s]+$/.test(trimmedTeamName);
+  }, [mode, trimmedTeamName]);
+
+  // Check if form is valid for create mode
+  const isFormValid = useMemo(() => {
+    if (!trimmedTeamName) return false;
+    // Check if only contains valid characters
+    return /^[a-zA-Z0-9\s]+$/.test(trimmedTeamName);
+  }, [trimmedTeamName]);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Trim team name once for all validations and operations
-    const trimmedTeamName = teamName.trim();
-    
     if (!user || !trimmedTeamName) {
       setError("Please enter a team name");
-      return;
-    }
-
-    // Validate team name doesn't contain hyphens or underscores
-    if (/[-_]/.test(trimmedTeamName)) {
-      setError("Team name cannot contain hyphens (-) or underscores (_)");
       return;
     }
 
@@ -113,7 +120,7 @@ export default function TeamForm({ mode, onSuccess, onCancel }: TeamFormProps) {
         }
 
         // Success - redirect with team name (for join mode)
-        onSuccess?.(teamName.trim());
+        onSuccess?.(trimmedTeamName);
       }
       
     } catch (err: unknown) {
@@ -168,6 +175,16 @@ export default function TeamForm({ mode, onSuccess, onCancel }: TeamFormProps) {
               </div>
             </div>
           )}
+
+          {/* Invalid characters warning */}
+          {mode === 'create' && hasInvalidChars && (
+            <div className="mt-2 flex items-center text-sm text-red-600">
+              <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              Team name can only contain letters, numbers, and spaces
+            </div>
+          )}
           
           {mode === 'join' && (
             <p className="text-sm text-gray-500 mt-2">
@@ -191,10 +208,10 @@ export default function TeamForm({ mode, onSuccess, onCancel }: TeamFormProps) {
           </div>
         )}
 
-        <div className="flex space-x-4 pt-6">
+        <div className="flex space-x-4 pt-4">
           <button
             type="submit"
-            disabled={loading || !teamName.trim()}
+            disabled={loading || !trimmedTeamName || (mode === 'create' && !isFormValid)}
             className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-6 rounded-lg text-lg font-semibold hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-md"
           >
             {loading ? (

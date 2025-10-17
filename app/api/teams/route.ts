@@ -38,10 +38,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validate team name doesn't contain hyphens or underscores (reserved for slug generation)
-    if (/[-_]/.test(trimmedTeamName)) {
+    // Validate team name contains only letters, numbers, and spaces
+    if (!/^[a-zA-Z0-9\s]+$/.test(trimmedTeamName)) {
       return NextResponse.json(
-        { error: 'Team name cannot contain hyphens (-) or underscores (_)' },
+        { error: 'Team name can only contain letters, numbers, and spaces' },
         { status: 400 }
       )
     }
