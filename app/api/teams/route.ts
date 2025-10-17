@@ -4,7 +4,7 @@ import { generateUniqueSlug } from '@/lib/slugUtils'
 
 /**
  * POST /api/teams
- * Creates a new team with the provided team name, owner, and wallet addresses.
+ * Creates a new team with the provided team name and owner.
  * Validates input, generates a unique slug, and stores the team in the database.
  */
 export async function POST(request: NextRequest) {
