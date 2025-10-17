@@ -155,7 +155,7 @@ export default function TeamForm({ mode, onSuccess, onCancel }: TeamFormProps) {
           />
           
           {/* Slug Preview for Create Mode */}
-          {mode === 'create' && slugPreview && (
+          {mode === 'create' && slugPreview && !hasInvalidChars && (
             <div className="mt-3 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg shadow-sm">
               <div className="flex items-center mb-2">
                 <svg className="w-4 h-4 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
